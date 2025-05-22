@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizMaster - Leaderboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --secondary-dark: #059669;
+            --accent: #f59e0b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+            --gold: #fbbf24;
+            --silver: #9ca3af;
+            --bronze: #dc2626;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background: var(--gradient);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .app-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .app-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .quiz-selector {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .quiz-selector label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .quiz-selector select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            background-color: var(--surface);
+            color: var(--text-primary);
+            min-width: 300px;
+            transition: border-color 0.2s ease;
+        }
+
+        .quiz-selector select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgb(99 102 241 / 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            border-top: 4px solid var(--primary);
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .leaderboard-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .podium {
+            display: flex;
+            justify-content: center;
+            align-items: end;
+            margin: 3rem 0;
+            gap: 2rem;
+        }
+
+        .podium-place {
+            text-align: center;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 2rem 1.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 3px solid;
+            min-width: 200px;
+            transition: transform 0.2s ease;
+        }
+
+        .podium-place:hover {
+            transform: translateY(-5px);
+        }
+
+        .podium-place.first {
+            border-color: var(--gold);
+            order: 2;
+            transform: scale(1.1);
+            background: linear-gradient(135deg, #fef9c3, #fbbf24);
+        }
+
+        .podium-place.second {
+            border-color: var(--silver);
+            order: 1;
+            background: linear-gradient(135deg, #f3f4f6, #9ca3af);
+        }
+
+        .podium-place.third {
+            border-color: var(--bronze);
+            order: 3;
+            background: linear-gradient(135deg, #fed7cc, #dc2626);
+        }
+
+        .podium-place.first:hover {
+            transform: scale(1.1) translateY(-5px);
+        }
+
+        .podium-place .medal {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .podium-place .rank {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .podium-place .name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .podium-place .score {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .podium-place .date {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .leaderboard-table-container {
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leaderboard-table th {
+            background: var(--gradient);
+            color: white;
+            font-weight: 600;
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .leaderboard-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .leaderboard-table tr:hover {
+            background-color: rgb(248 250 252);
+        }
+
+        .leaderboard-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: white;
+        }
+
+        .rank-1 {
+            background: var(--gold);
+            color: var(--text-primary);
+        }
+
+        .rank-2 {
+            background: var(--silver);
+            color: var(--text-primary);
+        }
+
+        .rank-3 {
+            background: var(--bronze);
+        }
+
+        .rank-other {
+            background: var(--text-secondary);
+        }
+
+        .participant-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 0.5rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: white;
+        }
+
+        .score-excellent {
+            background: var(--success);
+        }
+
+        .score-good {
+            background: var(--secondary);
+        }
+
+        .score-average {
+            background: var(--warning);
+            color: var(--text-primary);
+        }
+
+        .score-poor {
+            background: var(--error);
+        }
+
+        .navigation {
+            text-align: center;
+            margin-top: 3rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-success {
+            background: var(--secondary);
+        }
+
+        .btn-success:hover {
+            background: var(--secondary-dark);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 0.5rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .no-results h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .no-results p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .app-header h1 {
+                font-size: 2rem;
+            }
+
+            .podium {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .podium-place {
+                order: unset !important;
+                transform: none !important;
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .podium-place.first:hover {
+                transform: translateY(-5px);
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quiz-selector select {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .leaderboard-table {
+                font-size: 0.875rem;
+            }
+
+            .leaderboard-table th,
+            .leaderboard-table td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .navigation {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .leaderboard-table th:nth-child(n+4),
+            .leaderboard-table td:nth-child(n+4) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1>🏆 Leaderboard</h1>
+        <p>See how you rank against other quiz takers</p>
+    </div>
+
+    <div class="container">
+        <div class="quiz-selector">
+            <label for="quiz-filter">Select Quiz:</label>
+            <select id="quiz-filter" onchange="loadLeaderboard()">
+                <option value="">All Quizzes</option>
+            </select>
+        </div>
+
+        <div id="quiz-stats" class="stats-grid" style="display: none;"></div>
+
+        <div id="loading" class="loading">
+            Loading leaderboard data...
+        </div>
+
+        <div id="leaderboard-content" style="display: none;">
+            <!-- Top 3 Podium -->
+            <div class="leaderboard-section">
+                <div class="section-title">🌟 Top Performers</div>
+                <div id="podium" class="podium"></div>
+            </div>
+
+            <!-- Full Leaderboard Table -->
+            <div class="leaderboard-section">
+                <div class="section-title">📊 Complete Rankings</div>
+                <div class="leaderboard-table-container">
+                    <table id="leaderboard-table" class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Participant</th>
+                                <th>Quiz</th>
+                                <th>Score</th>
+                                <th>Percentage</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="no-results" class="no-results" style="display: none;">
+            <h3>No Results Yet</h3>
+            <p>Be the first to complete a quiz and claim the top spot!</p>
+        </div>
+
+        <div class="navigation">
+            <a href="index.html" class="btn">Take a Quiz</a>
+            <a href="admin.html" class="btn btn-success">Admin Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:3000/api';
+        
+        // Global variables
+        let currentQuizId = null;
+        let leaderboardData = [];
+        let quizStats = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadQuizOptions();
+            loadLeaderboard();
+        });
+
+        // Load quiz options for filter
+        async function loadQuizOptions() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/quizzes`);
+                const quizzes = await response.json();
+                
+                const quizFilter = document.getElementById('quiz-filter');
+                
+                // Clear existing options (except "All Quizzes")
+                while (quizFilter.children.length > 1) {
+                    quizFilter.removeChild(quizFilter.lastChild);
+                }
+                
+                // Add quiz options
+                quizzes.forEach(quiz => {
+                    const option = document.createElement('option');
+                    option.value = quiz.id;
+                    option.textContent = quiz.quiz_name;
+                    quizFilter.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading quiz options:', error);
+            }
+        }
+
+        // Load leaderboard data
+        async function loadLeaderboard() {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('leaderboard-content');
+            const noResults = document.getElementById('no-results');
+            const statsContainer = document.getElementById('quiz-stats');
+            
+            // Show loading
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            noResults.style.display = 'none';
+            statsContainer.style.display = 'none';
+
+            try {
+                const selectedQuizId = document.getElementById('quiz-filter').value;
+                currentQuizId = selectedQuizId || null;
+                
+                // Build API URL
+                const leaderboardUrl = selectedQuizId 
+                    ? `${API_BASE_URL}/leaderboard/${selectedQuizId}?limit=50`
+                    : `${API_BASE_URL}/leaderboard?limit=50`;
+                
+                // Load leaderboard data
+                const response = await fetch(leaderboardUrl);
+                leaderboardData = await response.json();
+                
+                // Load quiz statistics if specific quiz is selected
+                if (selectedQuizId) {
+                    const statsResponse = await fetch(`${API_BASE_URL}/stats/quiz/${selectedQuizId}`);
+                    quizStats = await statsResponse.json();
+                    displayQuizStats(quizStats);
+                }
+                
+                // Hide loading
+                loading.style.display = 'none';
+                
+                if (leaderboardData.length === 0) {
+                    noResults.style.display = 'block';
+                } else {
+                    content.style.display = 'block';
+                    displayLeaderboard();
+                }
+                
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                loading.style.display = 'none';
+                noResults.style.display = 'block';
+            }
+        }
+
+        // Display quiz statistics
+        function displayQuizStats(stats) {
+            const statsContainer = document.getElementById('quiz-stats');
+            
+            if (stats && stats.total_attempts > 0) {
+                const passRate = stats.total_attempts > 0 
+                    ? ((stats.passed_count / stats.total_attempts) * 100).toFixed(1) 
+                    : '0';
+
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <h3>${stats.total_attempts || 0}</h3>
+                        <p>Total Participants</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.avg_score ? stats.avg_score.toFixed(1) + '%' : '0%'}</h3>
+                        <p>Average Score</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${passRate}%</h3>
+                        <p>Pass Rate</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>${stats.highest_score ? stats.highest_score + '%' : '0%'}</h3>
+                        <p>Highest Score</p>
+                    </div>
+                `;
+                
+                statsContainer.style.display = 'grid';
+            } else {
+                statsContainer.style.display = 'none';
+            }
+        }
+
+        // Display leaderboard
+        function displayLeaderboard() {
+            displayPodium();
+            displayLeaderboardTable();
+        }
+
+        // Display top 3 podium
+        function displayPodium() {
+            const podiumContainer = document.getElementById('podium');
+            podiumContainer.innerHTML = '';
+            
+            // Get top 3 unique participants
+            const topThree = getTopThreeParticipants();
+            
+            if (topThree.length === 0) return;
+            
+            const medals = ['🥇', '🥈', '🥉'];
+            const classes = ['first', 'second', 'third'];
+            
+            topThree.forEach((participant, index) => {
+                const podiumPlace = document.createElement('div');
+                podiumPlace.className = `podium-place ${classes[index]}`;
+                
+                const completedDate = new Date(participant.completed_at).toLocaleDateString();
+                
+                podiumPlace.innerHTML = `
+                    <div class="medal">${medals[index]}</div>
+                    <div class="rank">#${index + 1}</div>
+                    <div class="name">${participant.participant_name}</div>
+                    <div class="score">${participant.percentage.toFixed(1)}%</div>
+                    <div class="date">${completedDate}</div>
+                `;
+                
+                podiumContainer.appendChild(podiumPlace);
+            });
+        }
+
+        // Get top 3 unique participants (best score per participant)
+        function getTopThreeParticipants() {
+            const participantBestScores = {};
+            
+            // Get best score for each participant
+            leaderboardData.forEach(entry => {
+                const name = entry.participant_name;
+                if (!participantBestScores[name] || entry.percentage > participantBestScores[name].percentage) {
+                    participantBestScores[name] = entry;
+                }
+            });
+            
+            // Convert to array and sort
+            const topParticipants = Object.values(participantBestScores)
+                .sort((a, b) => {
+                    if (b.percentage !== a.percentage) {
+                        return b.percentage - a.percentage;
+                    }
+                    // If scores are equal, sort by time (earlier is better)
+                    return new Date(a.completed_at) - new Date(b.completed_at);
+                });
+            
+            return topParticipants.slice(0, 3);
+        }
+
+        // Display full leaderboard table
+        function displayLeaderboardTable() {
+            const tableBody = document.getElementById('leaderboard-table-body');
+            const tableHeader = document.querySelector('#leaderboard-table thead tr');
+            
+            // Show/hide quiz column based on selection
+            const quizColumn = tableHeader.children[2];
+            const isAllQuizzes = !currentQuizId;
+            quizColumn.style.display = isAllQuizzes ? 'table-cell' : 'none';
+            
+            if (leaderboardData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No results to display</td></tr>';
+                return;
+            }
+            
+            let tableHTML = '';
+            
+            leaderboardData.forEach((entry, index) => {
+                const rank = entry.rank || (index + 1);
+                const rankClass = getRankClass(rank);
+                const scoreClass = getScoreClass(entry.percentage);
+                const completedDate = new Date(entry.completed_at).toLocaleDateString();
+                
+                tableHTML += `
+                    <tr>
+                        <td>
+                            <span class="rank-badge ${rankClass}">${rank}</span>
+                        </td>
+                        <td>
+                            <div class="participant-name">${entry.participant_name}</div>
+                        </td>
+                        <td style="display: ${isAllQuizzes ? 'table-cell' : 'none'}">${entry.quiz_name || ''}</td>
+                        <td>${entry.score}</td>
+                        <td>
+                            <span class="score-badge ${scoreClass}">${entry.percentage.toFixed(1)}%</span>
+                        </td>
+                        <td>${completedDate}</td>
+                    </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = tableHTML;
+        }
+
+        // Get rank CSS class
+        function getRankClass(rank) {
+            if (rank === 1) return 'rank-1';
+            if (rank === 2) return 'rank-2';
+            if (rank === 3) return 'rank-3';
+            return 'rank-other';
+        }
+
+        // Get score CSS class based on percentage
+        function getScoreClass(percentage) {
+            if (percentage >= 90) return 'score-excellent';
+            if (percentage >= 80) return 'score-good';
+            if (percentage >= 70) return 'score-average';
+            return 'score-poor';
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadLeaderboard, 30000);
+    </script>
+</body>
+</html>
