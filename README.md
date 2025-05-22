@@ -1,7 +1,7 @@
 # 🧠 QuizMaster - Interactive Learning Platform
 
 A modern, responsive quiz management system built with Node.js, SQLite, and contemporary web technologies. Create, manage, and analyze educational quizzes with a beautiful, professional interface.
- ![Image Alt](https://github.com/stratum01/quizmaster/blob/fdd0e7bfa3398a6775784b482ad42ffe2238de09/screenshots/01-quiz_list_index.png|width=300)
+ ![Image Alt](https://github.com/stratum01/quizmaster/blob/fdd0e7bfa3398a6775784b482ad42ffe2238de09/screenshots/01-quiz_list_index.png | width=300)
 ## ✨ Features
 
 ### 🎯 Quiz Taking Experience
