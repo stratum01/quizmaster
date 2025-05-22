@@ -216,7 +216,8 @@
             margin: 0.5rem 0;
         }
 
-        .checkbox-group input[type="checkbox"] {
+        .checkbox-group input[type="checkbox"],
+        .checkbox-group input[type="radio"] {
             width: auto;
         }
 
@@ -410,6 +411,15 @@
         .empty-state h3 {
             color: var(--text-primary);
             margin-bottom: 1rem;
+        }
+
+        .error {
+            background: rgb(254 242 242);
+            color: rgb(153 27 27);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--error);
+            margin: 1rem 0;
         }
 
         .alert {
@@ -749,22 +759,7 @@
                     <div id="multiple-choice-options" class="form-group" style="display: none;">
                         <label>Answer Options</label>
                         <div id="options-container">
-                            <div class="option-container">
-                                <input type="text" class="option-input" placeholder="Option 1" required>
-                                <label class="switch">
-                                    <input type="checkbox" class="correct-switch">
-                                    <span class="slider"></span>
-                                </label>
-                                <button type="button" onclick="removeOption(this)" class="btn btn-danger btn-small">Remove</button>
-                            </div>
-                            <div class="option-container">
-                                <input type="text" class="option-input" placeholder="Option 2" required>
-                                <label class="switch">
-                                    <input type="checkbox" class="correct-switch">
-                                    <span class="slider"></span>
-                                </label>
-                                <button type="button" onclick="removeOption(this)" class="btn btn-danger btn-small">Remove</button>
-                            </div>
+                            <!-- Options will be dynamically added here -->
                         </div>
                         <button type="button" onclick="addOption()" class="btn btn-secondary btn-small">Add Option</button>
                     </div>
@@ -880,7 +875,233 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboardData();
             loadCategories();
+            setupFormHandlers();
         });
+
+        // Setup form submission handlers
+        function setupFormHandlers() {
+            // Question form submission
+            document.getElementById('question-form').addEventListener('submit', handleQuestionSubmit);
+            
+            // Quiz form submission
+            document.getElementById('quiz-form').addEventListener('submit', handleQuizSubmit);
+        }
+
+        // Handle question form submission
+        async function handleQuestionSubmit(event) {
+            event.preventDefault();
+            
+            const questionData = {
+                question_text: document.getElementById('question-text').value.trim(),
+                question_type: document.getElementById('question-type').value,
+                difficulty_level: parseInt(document.getElementById('difficulty-level').value),
+                category: document.getElementById('question-category').value,
+                feedback: document.getElementById('feedback-text').value.trim(),
+                is_active: document.getElementById('is-active').checked ? 1 : 0
+            };
+            
+            // Validate required fields
+            if (!questionData.question_text || !questionData.feedback) {
+                showAlert('Please fill in all required fields', 'danger');
+                return;
+            }
+            
+            // Get options and correct answers based on question type
+            if (questionData.question_type === 'true-false') {
+                questionData.options = ['True', 'False'];
+                const selectedAnswer = document.querySelector('input[name="tf-correct"]:checked').value;
+                questionData.correct_answers = [selectedAnswer];
+            } else {
+                // Multiple choice options
+                const optionInputs = document.querySelectorAll('.option-input');
+                const correctSwitches = document.querySelectorAll('.correct-switch');
+                
+                const options = [];
+                const correctAnswers = [];
+                
+                optionInputs.forEach((input, index) => {
+                    const optionText = input.value.trim();
+                    if (optionText) {
+                        options.push(optionText);
+                        if (correctSwitches[index] && correctSwitches[index].checked) {
+                            correctAnswers.push(optionText);
+                        }
+                    }
+                });
+                
+                if (options.length < 2) {
+                    showAlert('Please provide at least 2 options', 'danger');
+                    return;
+                }
+                
+                if (correctAnswers.length === 0) {
+                    showAlert('Please select at least one correct answer', 'danger');
+                    return;
+                }
+                
+                questionData.options = options;
+                questionData.correct_answers = correctAnswers;
+            }
+            
+            try {
+                const url = currentQuestionId 
+                    ? `${API_BASE_URL}/questions/${currentQuestionId}`
+                    : `${API_BASE_URL}/questions`;
+                
+                const method = currentQuestionId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(questionData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save question');
+                }
+                
+                const result = await response.json();
+                showAlert(currentQuestionId ? 'Question updated successfully!' : 'Question created successfully!', 'success');
+                
+                closeQuestionModal();
+                loadQuestions(); // Refresh the questions list
+                
+            } catch (error) {
+                console.error('Error saving question:', error);
+                showAlert('Error saving question: ' + error.message, 'danger');
+            }
+        }
+
+        // Handle quiz form submission
+        async function handleQuizSubmit(event) {
+            event.preventDefault();
+            
+            const quizData = {
+                quiz_name: document.getElementById('quiz-name').value.trim(),
+                description: document.getElementById('quiz-description').value.trim(),
+                category: document.getElementById('quiz-category').value,
+                time_limit: document.getElementById('time-limit').value ? parseInt(document.getElementById('time-limit').value) : null,
+                passing_score: parseInt(document.getElementById('passing-score').value),
+                allow_retakes: document.getElementById('allow-retakes').checked ? 1 : 0,
+                show_correct_answers: document.getElementById('show-correct-answers').checked ? 1 : 0,
+                randomize_questions: document.getElementById('randomize-questions').checked ? 1 : 0,
+                is_active: document.getElementById('quiz-active').checked ? 1 : 0
+            };
+            
+            if (!quizData.quiz_name) {
+                showAlert('Please enter a quiz name', 'danger');
+                return;
+            }
+            
+            try {
+                const url = currentQuizId 
+                    ? `${API_BASE_URL}/quizzes/${currentQuizId}`
+                    : `${API_BASE_URL}/quizzes`;
+                
+                const method = currentQuizId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(quizData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save quiz');
+                }
+                
+                const result = await response.json();
+                showAlert(currentQuizId ? 'Quiz updated successfully!' : 'Quiz created successfully!', 'success');
+                
+                closeQuizModal();
+                loadQuizzes(); // Refresh the quizzes list
+                
+            } catch (error) {
+                console.error('Error saving quiz:', error);
+                showAlert('Error saving quiz: ' + error.message, 'danger');
+            }
+        }
+
+        // Load question data for editing
+        async function loadQuestionData(questionId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/questions/${questionId}`);
+                const question = await response.json();
+                
+                // Populate form fields
+                document.getElementById('question-id').value = question.id;
+                document.getElementById('question-text').value = question.question_text;
+                document.getElementById('question-type').value = question.question_type;
+                document.getElementById('question-category').value = question.category || '';
+                document.getElementById('difficulty-level').value = question.difficulty_level;
+                document.getElementById('feedback-text').value = question.feedback;
+                document.getElementById('is-active').checked = question.is_active === 1;
+                
+                // Handle question type specific options
+                toggleQuestionTypeOptions();
+                
+                if (question.question_type === 'true-false') {
+                    const correctAnswer = question.correct_answers[0];
+                    if (correctAnswer === 'True') {
+                        document.getElementById('tf-true').checked = true;
+                    } else {
+                        document.getElementById('tf-false').checked = true;
+                    }
+                } else {
+                    // Multiple choice - rebuild options container
+                    const container = document.getElementById('options-container');
+                    container.innerHTML = '';
+                    
+                    question.options.forEach((option, index) => {
+                        const optionDiv = document.createElement('div');
+                        optionDiv.className = 'option-container';
+                        optionDiv.innerHTML = `
+                            <input type="text" class="option-input" placeholder="Option ${index + 1}" value="${option}" required>
+                            <label class="switch">
+                                <input type="checkbox" class="correct-switch" ${question.correct_answers.includes(option) ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <button type="button" onclick="removeOption(this)" class="btn btn-danger btn-small">Remove</button>
+                        `;
+                        container.appendChild(optionDiv);
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error loading question data:', error);
+                showAlert('Error loading question data', 'danger');
+            }
+        }
+
+        // Load quiz data for editing
+        async function loadQuizData(quizId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`);
+                const quiz = await response.json();
+                
+                // Populate form fields
+                document.getElementById('quiz-id').value = quiz.id;
+                document.getElementById('quiz-name').value = quiz.quiz_name;
+                document.getElementById('quiz-description').value = quiz.description || '';
+                document.getElementById('quiz-category').value = quiz.category || '';
+                document.getElementById('time-limit').value = quiz.time_limit || '';
+                document.getElementById('passing-score').value = quiz.passing_score;
+                document.getElementById('allow-retakes').checked = quiz.allow_retakes === 1;
+                document.getElementById('show-correct-answers').checked = quiz.show_correct_answers === 1;
+                document.getElementById('randomize-questions').checked = quiz.randomize_questions === 1;
+                document.getElementById('quiz-active').checked = quiz.is_active === 1;
+                
+            } catch (error) {
+                console.error('Error loading quiz data:', error);
+                showAlert('Error loading quiz data', 'danger');
+            }
+        }
 
         // Navigation
         function showSection(sectionName) {
@@ -913,6 +1134,7 @@
                     break;
                 case 'results':
                     loadResults();
+                    loadQuizzesForFilter();
                     break;
                 case 'analytics':
                     loadAnalytics();
@@ -958,29 +1180,37 @@
         async function loadRecentActivity() {
             const container = document.getElementById('recent-activity');
             try {
-                const response = await fetch(`${API_BASE_URL}/quizzes/1/attempts?limit=5`);
-                const attempts = await response.json();
+                // Try to get recent attempts from any quiz
+                const quizzesResponse = await fetch(`${API_BASE_URL}/quizzes`);
+                const quizzesData = await quizzesResponse.json();
                 
-                if (attempts.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No recent activity</p>';
-                    return;
-                }
+                if (quizzesData.length > 0) {
+                    const response = await fetch(`${API_BASE_URL}/quizzes/${quizzesData[0].id}/attempts?limit=5`);
+                    const attempts = await response.json();
+                    
+                    if (attempts.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No recent activity</p>';
+                        return;
+                    }
 
-                let html = '<table class="data-table"><thead><tr><th>Participant</th><th>Quiz</th><th>Score</th><th>Date</th></tr></thead><tbody>';
-                
-                attempts.slice(0, 5).forEach(attempt => {
-                    html += `
-                        <tr>
-                            <td>${attempt.participant_name}</td>
-                            <td>Quiz Attempt</td>
-                            <td>${attempt.percentage.toFixed(1)}%</td>
-                            <td>${new Date(attempt.completed_at).toLocaleDateString()}</td>
-                        </tr>
-                    `;
-                });
-                
-                html += '</tbody></table>';
-                container.innerHTML = html;
+                    let html = '<table class="data-table"><thead><tr><th>Participant</th><th>Quiz</th><th>Score</th><th>Date</th></tr></thead><tbody>';
+                    
+                    attempts.slice(0, 5).forEach(attempt => {
+                        html += `
+                            <tr>
+                                <td>${attempt.participant_name}</td>
+                                <td>Quiz Attempt</td>
+                                <td>${attempt.percentage.toFixed(1)}%</td>
+                                <td>${new Date(attempt.completed_at).toLocaleDateString()}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No quizzes available</p>';
+                }
                 
             } catch (error) {
                 console.error('Error loading recent activity:', error);
@@ -1036,6 +1266,10 @@
                 if (type) url += `type=${encodeURIComponent(type)}&`;
                 
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 questions = await response.json();
 
                 if (questions.length === 0) {
@@ -1095,17 +1329,21 @@
 
             } catch (error) {
                 console.error('Error loading questions:', error);
-                container.innerHTML = '<div class="alert alert-danger">Error loading questions</div>';
+                container.innerHTML = '<div class="error">Error loading questions: ' + error.message + '</div>';
             }
         }
 
-        // Quiz Management
+        // Quiz Management  
         async function loadQuizzes() {
             const container = document.getElementById('quizzes-list');
             container.innerHTML = '<div class="loading">Loading quizzes...</div>';
 
             try {
                 const response = await fetch(`${API_BASE_URL}/quizzes`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 quizzes = await response.json();
 
                 if (quizzes.length === 0) {
@@ -1159,7 +1397,33 @@
 
             } catch (error) {
                 console.error('Error loading quizzes:', error);
-                container.innerHTML = '<div class="alert alert-danger">Error loading quizzes</div>';
+                container.innerHTML = '<div class="error">Error loading quizzes: ' + error.message + '</div>';
+            }
+        }
+
+        // Load quizzes for filter dropdown
+        async function loadQuizzesForFilter() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/quizzes`);
+                const quizzes = await response.json();
+                
+                const filterSelect = document.getElementById('results-quiz-filter');
+                
+                // Clear existing options (except first one)
+                while (filterSelect.children.length > 1) {
+                    filterSelect.removeChild(filterSelect.lastChild);
+                }
+                
+                // Add quiz options
+                quizzes.forEach(quiz => {
+                    const option = document.createElement('option');
+                    option.value = quiz.id;
+                    option.textContent = quiz.quiz_name;
+                    filterSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading quizzes for filter:', error);
             }
         }
 
@@ -1215,7 +1479,7 @@
 
             } catch (error) {
                 console.error('Error loading results:', error);
-                container.innerHTML = '<div class="alert alert-danger">Error loading results</div>';
+                container.innerHTML = '<div class="error">Error loading results: ' + error.message + '</div>';
             }
         }
 
@@ -1269,7 +1533,7 @@
 
             } catch (error) {
                 console.error('Error loading analytics:', error);
-                container.innerHTML = '<div class="alert alert-danger">Error loading analytics</div>';
+                container.innerHTML = '<div class="error">Error loading analytics: ' + error.message + '</div>';
             }
         }
 
@@ -1288,10 +1552,34 @@
             } else {
                 title.textContent = 'Add New Question';
                 document.getElementById('question-id').value = '';
+                // Set default options for new questions
+                setupDefaultOptions();
             }
             
             toggleQuestionTypeOptions();
             modal.style.display = 'block';
+        }
+
+        function setupDefaultOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = `
+                <div class="option-container">
+                    <input type="text" class="option-input" placeholder="Option 1" required>
+                    <label class="switch">
+                        <input type="checkbox" class="correct-switch">
+                        <span class="slider"></span>
+                    </label>
+                    <button type="button" onclick="removeOption(this)" class="btn btn-danger btn-small">Remove</button>
+                </div>
+                <div class="option-container">
+                    <input type="text" class="option-input" placeholder="Option 2" required>
+                    <label class="switch">
+                        <input type="checkbox" class="correct-switch">
+                        <span class="slider"></span>
+                    </label>
+                    <button type="button" onclick="removeOption(this)" class="btn btn-danger btn-small">Remove</button>
+                </div>
+            `;
         }
 
         function closeQuestionModal() {
@@ -1336,7 +1624,7 @@
             if (container.children.length > 2) {
                 button.parentElement.remove();
             } else {
-                showAlert('You must have at least 2 options', 'warning');
+                showAlert('You must have at least 2 options', 'danger');
             }
         }
 
@@ -1355,6 +1643,11 @@
             } else {
                 title.textContent = 'Create New Quiz';
                 document.getElementById('quiz-id').value = '';
+                // Set defaults
+                document.getElementById('passing-score').value = '70';
+                document.getElementById('allow-retakes').checked = true;
+                document.getElementById('show-correct-answers').checked = true;
+                document.getElementById('quiz-active').checked = true;
             }
             
             modal.style.display = 'block';
@@ -1364,9 +1657,6 @@
             document.getElementById('quiz-modal').style.display = 'none';
             currentQuizId = null;
         }
-
-        // Form submission handlers would go here...
-        // (Implementation similar to the original but with modern styling)
 
         // Edit functions
         function editQuestion(id) {

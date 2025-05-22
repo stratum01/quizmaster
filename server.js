@@ -416,6 +416,24 @@ app.post('/api/quizzes/:id/questions', (req, res) => {
     }
 });
 
+app.delete('/api/quizzes/:id', (req, res) => {
+    const { id } = req.params;
+    
+    db.run('UPDATE quizzes SET is_active = 0 WHERE id = ?', [id], function(err) {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        
+        if (this.changes === 0) {
+            res.status(404).json({ error: 'Quiz not found' });
+            return;
+        }
+        
+        res.json({ message: 'Quiz deleted successfully' });
+    });
+});
+
 function addQuestionToQuiz(quiz_id, question_id, order, res) {
     const query = 'INSERT INTO quiz_questions (quiz_id, question_id, question_order) VALUES (?, ?, ?)';
     
